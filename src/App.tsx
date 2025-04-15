@@ -8,6 +8,9 @@ import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
 
+// Forcing dark mode for our app design
+document.documentElement.classList.add('dark');
+
 const App = () => (
   <QueryClientProvider client={queryClient}>
     <TooltipProvider>
