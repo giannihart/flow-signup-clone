@@ -1,16 +1,14 @@
-
 import React, { useState, useEffect } from "react";
 import Logo from "@/components/Logo";
 import GitHubButton from "@/components/GitHubButton";
 import StepCard from "@/components/StepCard";
 import Accordion from "@/components/Accordion";
-import ProgressIndicator from "@/components/ProgressIndicator";
 
 interface SignupFlowProps {
   initialUserName?: string;
 }
 
-const SignupFlow: React.FC<SignupFlowProps> = ({ initialUserName = "GMH" }) => {
+const SignupFlow: React.FC<SignupFlowProps> = ({ initialUserName = "TEAM" }) => {
   const [userName, setUserName] = useState(initialUserName);
   const [currentStep, setCurrentStep] = useState(1);
   const [isGithubAuthorized, setIsGithubAuthorized] = useState(false);
@@ -82,12 +80,12 @@ const SignupFlow: React.FC<SignupFlowProps> = ({ initialUserName = "GMH" }) => {
       if (button) {
         const originalText = button.textContent;
         button.textContent = 'Copied!';
-        button.classList.add('bg-green-600', 'text-white');
+        button.classList.add('bg-white', 'text-black');
         button.classList.remove('bg-gray-700', 'text-gray-300');
         
         setTimeout(() => {
           button.textContent = originalText;
-          button.classList.remove('bg-green-600', 'text-white');
+          button.classList.remove('bg-white', 'text-black');
           button.classList.add('bg-gray-700', 'text-gray-300');
         }, 2000);
       }
@@ -105,6 +103,23 @@ const SignupFlow: React.FC<SignupFlowProps> = ({ initialUserName = "GMH" }) => {
           button.classList.remove('bg-red-600');
         }, 2000);
       }
+    }
+  };
+
+  const resetStep = (stepToReset: number) => {
+    switch (stepToReset) {
+      case 1:
+        setIsGithubAuthorized(false);
+        setEmail("");
+        setPassword("");
+        setCurrentStep(1);
+        break;
+      case 2:
+        setRepoName("");
+        setCurrentStep(2);
+        break;
+      default:
+        break;
     }
   };
 
@@ -126,8 +141,6 @@ const SignupFlow: React.FC<SignupFlowProps> = ({ initialUserName = "GMH" }) => {
       <h1 className="text-2xl font-bold mb-1">Hello, {userName}</h1>
       <p className="text-gray-400 mb-2">Let's set up your first documentation deployment</p>
       
-      <ProgressIndicator totalSteps={3} currentStep={currentStep} />
-      
       <StepCard 
         stepNumber={1} 
         title="Sign in with GitHub" 
@@ -145,7 +158,7 @@ const SignupFlow: React.FC<SignupFlowProps> = ({ initialUserName = "GMH" }) => {
               {isLoading && currentStep === 1 ? "Connecting..." : "Login with GitHub"}
             </GitHubButton>
             
-            <div className="mt-4">
+            <div className="mt-4 w-full">
               <Accordion title="Don't want to authorize GitHub OAuth?">
                 <div className="flex flex-col space-y-3 animate-slide-up opacity-0">
                   <input
@@ -178,11 +191,18 @@ const SignupFlow: React.FC<SignupFlowProps> = ({ initialUserName = "GMH" }) => {
             </div>
           </>
         ) : (
-          <div className="text-green-500 flex items-center animate-slide-up">
+          <div className="text-white flex items-center animate-slide-up">
             <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2" viewBox="0 0 20 20" fill="currentColor">
               <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
             </svg>
             GitHub account connected successfully
+          </div>
+        )}
+        
+        {currentStep > 1 && (
+          <div className="text-xs text-white hover:underline mt-2 cursor-pointer" 
+               onClick={() => resetStep(1)}>
+            Edit Sign In
           </div>
         )}
       </StepCard>
@@ -210,7 +230,7 @@ const SignupFlow: React.FC<SignupFlowProps> = ({ initialUserName = "GMH" }) => {
                 onClick={handleCreateRepo}
                 disabled={!repoName.trim() || currentStep > 2 || isLoading}
                 className={`px-4 py-2 rounded-md whitespace-nowrap ${
-                  repoName.trim() && currentStep === 2 && !isLoading ? "bg-green-600 hover:bg-green-700" : "bg-gray-700 cursor-not-allowed"
+                  repoName.trim() && currentStep === 2 && !isLoading ? "bg-white hover:bg-gray-100" : "bg-gray-700 cursor-not-allowed"
                 } transition-colors`}
               >
                 {isLoading && currentStep === 2 ? "Creating..." : "Create"}
@@ -226,13 +246,20 @@ const SignupFlow: React.FC<SignupFlowProps> = ({ initialUserName = "GMH" }) => {
             )}
             
             {currentStep > 2 && (
-              <div className="text-green-500 flex items-center animate-slide-up">
+              <div className="text-white flex items-center animate-slide-up">
                 <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2" viewBox="0 0 20 20" fill="currentColor">
                   <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
                 </svg>
                 Repository created successfully
               </div>
             )}
+          </div>
+        )}
+        
+        {currentStep > 2 && (
+          <div className="text-xs text-white hover:underline mt-2 cursor-pointer" 
+               onClick={() => resetStep(2)}>
+            Edit Repository
           </div>
         )}
       </StepCard>
@@ -260,9 +287,22 @@ const SignupFlow: React.FC<SignupFlowProps> = ({ initialUserName = "GMH" }) => {
         )}
       </StepCard>
       
+      {currentStep === 3 && (
+        <button
+          onClick={() => {/* Add continue logic */}}
+          className="w-full mt-4 py-3 bg-gray-800 text-white rounded-md 
+            hover:bg-white hover:text-black 
+            active:bg-gray-200 
+            transition-colors duration-300 
+            focus:outline-none focus:ring-2 focus:ring-gray-600"
+        >
+          Continue
+        </button>
+      )}
+
       <div className="w-full text-center mt-8">
         <p className="text-sm text-gray-500">
-          Need help? <a href="#" className="text-green-500 hover:underline">Contact support</a>
+          Need help? <a href="#" className="text-white hover:underline">Contact support</a>
         </p>
       </div>
     </div>

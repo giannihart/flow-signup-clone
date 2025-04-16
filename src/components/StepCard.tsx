@@ -1,4 +1,3 @@
-
 import React, { ReactNode } from "react";
 
 interface StepCardProps {
@@ -19,18 +18,18 @@ const StepCard: React.FC<StepCardProps> = ({
   return (
     <div 
       data-step={stepNumber}
-      className={`border rounded-md p-5 mb-4 transition-all duration-300 animate-fade-in 
-        ${active ? "border-green-600/30" : completed ? "border-gray-700" : "border-gray-800"}
+      className={`border rounded-md p-5 mb-4 w-full transition-all duration-300 animate-fade-in 
+        ${active ? "border-white/30" : completed ? "border-gray-700" : "border-gray-800"}
         ${active ? "shadow-[0_0_10px_rgba(16,185,129,0.1)]" : ""}
       `}
     >
       <h3 className={`text-lg font-medium mb-2 flex items-center
-        ${active ? "text-green-500" : completed ? "text-gray-400" : "text-white"}
+        ${active ? "text-white" : completed ? "text-gray-400" : "text-white"}
       `}>
         {completed ? (
           <svg 
             xmlns="http://www.w3.org/2000/svg" 
-            className="h-5 w-5 mr-2 text-green-500" 
+            className="h-5 w-5 mr-2 text-white" 
             viewBox="0 0 20 20" 
             fill="currentColor"
             style={{ animation: 'checkmarkAnimation 0.5s ease-out forwards' }}
@@ -39,7 +38,7 @@ const StepCard: React.FC<StepCardProps> = ({
           </svg>
         ) : (
           <span className={`inline-flex items-center justify-center w-6 h-6 rounded-full mr-2 text-sm
-            ${active ? "bg-green-500 text-black animate-pulse" : "bg-gray-800 text-gray-400"}
+            ${active ? "bg-white text-black animate-pulse" : "bg-gray-800 text-gray-400"}
           `}>
             {stepNumber}
           </span>
