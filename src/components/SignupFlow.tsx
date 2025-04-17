@@ -17,6 +17,12 @@ const SignupFlow: React.FC<SignupFlowProps> = ({ initialUserName = "TEAM" }) => 
   const [password, setPassword] = useState("");
   const [errorMessage, setErrorMessage] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+  const [repoUrl, setRepoUrl] = useState("");
+  const [isRepoConnected, setIsRepoConnected] = useState(false);
+  const [repositories, setRepositories] = useState<string[]>([]);
+  const [newRepoUrl, setNewRepoUrl] = useState("");
+  const [domainName, setDomainName] = useState("");
+  const [customDomain, setCustomDomain] = useState("");
 
   const handleGitHubLogin = () => {
     setIsLoading(true);
@@ -68,9 +74,77 @@ const SignupFlow: React.FC<SignupFlowProps> = ({ initialUserName = "TEAM" }) => 
     }, 800);
   };
 
+  const handleConnectRepo = () => {
+    if (!repoUrl.trim()) return;
+    
+    setIsLoading(true);
+    setErrorMessage("");
+    
+    // Basic URL validation
+    const urlPattern = /^(https?:\/\/)?(www\.)?github\.com\/[a-zA-Z0-9-]+\/[a-zA-Z0-9-]+$/;
+    if (!urlPattern.test(repoUrl)) {
+      setErrorMessage("Please enter a valid GitHub repository URL");
+      setIsLoading(false);
+      return;
+    }
+    
+    // Simulate repository connection with a small delay
+    setTimeout(() => {
+      setIsRepoConnected(true);
+      setCurrentStep(3);
+      setIsLoading(false);
+    }, 800);
+  };
+
+  const handleAddRepository = () => {
+    if (!newRepoUrl.trim()) return;
+    
+    // More flexible URL validation
+    const urlPattern = /^(https?:\/\/)?(www\.)?github\.com\/[a-zA-Z0-9-]+\/[a-zA-Z0-9_.-]+\/?$/;
+    
+    // Remove any trailing slashes
+    let cleanedRepoUrl = newRepoUrl.trim().replace(/\/+$/, '');
+    
+    // If URL doesn't match pattern, try to clean it up
+    if (!urlPattern.test(cleanedRepoUrl)) {
+      // Try to convert SSH or git URLs to HTTPS
+      if (cleanedRepoUrl.startsWith('git@github.com:')) {
+        cleanedRepoUrl = cleanedRepoUrl.replace('git@github.com:', 'https://github.com/');
+      } else if (cleanedRepoUrl.startsWith('git://')) {
+        cleanedRepoUrl = cleanedRepoUrl.replace('git://', 'https://');
+      }
+      
+      // If still not valid, add https:// prefix
+      if (!cleanedRepoUrl.startsWith('http://') && !cleanedRepoUrl.startsWith('https://')) {
+        cleanedRepoUrl = `https://${cleanedRepoUrl}`;
+      }
+    }
+    
+    // Revalidate after cleaning
+    if (!urlPattern.test(cleanedRepoUrl)) {
+      setErrorMessage("Please enter a valid GitHub repository URL");
+      return;
+    }
+    
+    // Check for duplicate repositories
+    if (repositories.includes(cleanedRepoUrl)) {
+      setErrorMessage("This repository is already added");
+      return;
+    }
+    
+    // Add repository
+    setRepositories([...repositories, cleanedRepoUrl]);
+    setNewRepoUrl("");
+    setErrorMessage("");
+  };
+
+  const removeRepository = (repoToRemove: string) => {
+    setRepositories(repositories.filter(repo => repo !== repoToRemove));
+  };
+
   // Function to copy git command to clipboard
   const copyGitCommand = () => {
-    const command = `git clone https://github.com/${userName}/${repoName || "docs"}.git`;
+    const command = repoUrl;
     
     try {
       navigator.clipboard.writeText(command);
@@ -133,6 +207,28 @@ const SignupFlow: React.FC<SignupFlowProps> = ({ initialUserName = "TEAM" }) => 
       }, 100);
     }
   }, [currentStep]);
+
+  const handleDomainCustomization = () => {
+    // Validate domain name
+    const domainPattern = /^[a-zA-Z0-9][a-zA-Z0-9-]{1,61}[a-zA-Z0-9]$/;
+    
+    if (!domainName.trim()) {
+      setErrorMessage("Please enter a domain name");
+      return;
+    }
+
+    if (!domainPattern.test(domainName)) {
+      setErrorMessage("Please enter a valid domain name (letters, numbers, hyphens)");
+      return;
+    }
+
+    // Prepend https:// to the domain
+    const formattedDomain = `https://${domainName.trim()}`;
+
+    // Set custom domain
+    setCustomDomain(formattedDomain);
+    setErrorMessage("");
+  };
 
   return (
     <div className="flex flex-col items-start w-full">
@@ -209,95 +305,168 @@ const SignupFlow: React.FC<SignupFlowProps> = ({ initialUserName = "TEAM" }) => 
       
       <StepCard 
         stepNumber={2} 
-        title="Create documentation repo"
+        title="Connect documentation repos"
         active={currentStep === 2}
         completed={currentStep > 2}
       >
-        <p className="mb-4">Your documentation content will be managed through this repo</p>
+        <p className="mb-4">Connect existing GitHub repositories for your documentation</p>
         
-        {currentStep >= 2 && (
-          <div className={`flex flex-col space-y-3 ${currentStep === 2 ? "animate-slide-up animate-delay-100" : ""}`}>
+        {currentStep === 2 && (
+          <div className={`flex flex-col space-y-3 animate-slide-up animate-delay-100`}>
             <div className="flex flex-col sm:flex-row sm:items-center gap-2">
               <input
                 type="text"
-                value={repoName}
-                onChange={(e) => setRepoName(e.target.value)}
-                placeholder="documentation-repo"
+                value={newRepoUrl}
+                onChange={(e) => {
+                  setNewRepoUrl(e.target.value);
+                  setErrorMessage("");
+                }}
+                placeholder="https://github.com/username/repo"
                 className="w-full px-3 py-2 bg-gray-800 border border-gray-700 rounded-md focus:outline-none focus:ring-1 focus:ring-gray-600"
-                disabled={currentStep > 2 || isLoading}
+                disabled={currentStep > 2}
               />
               <button
-                onClick={handleCreateRepo}
-                disabled={!repoName.trim() || currentStep > 2 || isLoading}
+                onClick={handleAddRepository}
+                disabled={!newRepoUrl.trim() || currentStep > 2}
                 className={`px-4 py-2 rounded-md whitespace-nowrap ${
-                  repoName.trim() && currentStep === 2 && !isLoading ? "bg-white hover:bg-gray-100" : "bg-gray-700 cursor-not-allowed"
+                  newRepoUrl.trim() ? "bg-white hover:bg-gray-100" : "bg-gray-700 cursor-not-allowed"
                 } transition-colors`}
               >
-                {isLoading && currentStep === 2 ? "Creating..." : "Create"}
+                Add Repository
               </button>
             </div>
             
-            {errorMessage && currentStep === 2 && (
+            {errorMessage && (
               <p className="text-red-500 text-xs mt-1">{errorMessage}</p>
             )}
             
-            {currentStep === 2 && !errorMessage && (
-              <p className="text-xs text-gray-500">This will create a new GitHub repository for your documentation</p>
+            {repositories.length > 0 && (
+              <div className="mt-4">
+                <h4 className="text-sm font-medium mb-2">Connected Repositories:</h4>
+                <ul className="space-y-2">
+                  {repositories.map((repo, index) => (
+                    <li 
+                      key={repo} 
+                      className="flex justify-between items-center bg-gray-800 px-3 py-2 rounded-md"
+                    >
+                      <span className="text-xs truncate">{repo}</span>
+                      <button
+                        onClick={() => removeRepository(repo)}
+                        className="text-xs text-red-500 hover:text-red-400 ml-2"
+                      >
+                        Remove
+                      </button>
+                    </li>
+                  ))}
+                </ul>
+              </div>
             )}
             
-            {currentStep > 2 && (
-              <div className="text-white flex items-center animate-slide-up">
-                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2" viewBox="0 0 20 20" fill="currentColor">
-                  <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
-                </svg>
-                Repository created successfully
-              </div>
+            {repositories.length > 0 && (
+              <button
+                onClick={() => {
+                  setIsRepoConnected(true);
+                  setCurrentStep(3);
+                }}
+                className="w-full py-2 mt-4 bg-white text-black rounded-md hover:bg-gray-100 transition-colors"
+              >
+                Continue
+              </button>
             )}
           </div>
         )}
-        
+
+        {currentStep > 2 && (
+          <div className="text-white flex items-center animate-slide-up">
+            <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2" viewBox="0 0 20 20" fill="currentColor">
+              <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+            </svg>
+            Repositories successfully connected
+          </div>
+        )}
+
         {currentStep > 2 && (
           <div className="text-xs text-white hover:underline mt-2 cursor-pointer" 
-               onClick={() => resetStep(2)}>
-            Edit Repository
+               onClick={() => setCurrentStep(2)}>
+            Edit Repositories
           </div>
         )}
       </StepCard>
       
       <StepCard 
         stepNumber={3} 
-        title="Make an update"
+        title="Customize Your Docs Domain"
         active={currentStep === 3}
         completed={false}
       >
-        <p>Clone the repo by running the following in your terminal</p>
+        <p className="mb-4">Set up a custom documentation subdomain</p>
+        
         {currentStep >= 3 && (
-          <div className="mt-2 relative animate-slide-up animate-delay-200">
-            <div className="p-3 bg-gray-800 rounded-md text-xs font-mono overflow-x-auto">
-              git clone https://github.com/{userName}/{repoName || "docs"}.git
+          <div className="space-y-4 animate-slide-up animate-delay-200">
+            <div>
+              <h4 className="text-sm font-medium mb-2">Domain Customization</h4>
+              <div className="flex flex-col sm:flex-row sm:items-center gap-2">
+                <div className="flex w-full">
+                  <div className="bg-gray-700 px-3 py-2 flex items-center border border-r-0 border-gray-700 rounded-l-md">
+                    <span className="text-gray-400">https://</span>
+                  </div>
+                  <input
+                    type="text"
+                    value={domainName}
+                    onChange={(e) => {
+                      setDomainName(e.target.value);
+                      setErrorMessage("");
+                    }}
+                    placeholder="yourdomain"
+                    className="w-full px-3 py-2 bg-gray-800 border border-gray-700 focus:outline-none focus:ring-1 focus:ring-gray-600"
+                  />
+                  <div className="bg-gray-700 px-3 py-2 flex items-center border border-l-0 border-gray-700 rounded-r-md">
+                    <span className="text-gray-400">/docs</span>
+                  </div>
+                </div>
+                <button
+                  onClick={handleDomainCustomization}
+                  disabled={!domainName.trim()}
+                  className={`px-4 py-2 rounded-md whitespace-nowrap ${
+                    domainName.trim() ? "bg-white hover:bg-gray-100" : "bg-gray-700 cursor-not-allowed"
+                  } transition-colors`}
+                >
+                  Set Domain
+                </button>
+              </div>
+
+              {errorMessage && (
+                <p className="text-red-500 text-xs mt-1">{errorMessage}</p>
+              )}
+
+              {customDomain && (
+                <div className="mt-2 bg-gray-800 px-3 py-2 rounded-md">
+                  <p className="text-xs">
+                    Custom Docs Domain: <span className="font-medium">{customDomain}/docs</span>
+                  </p>
+                </div>
+              )}
             </div>
-            <button
-              id="copy-button"
-              onClick={copyGitCommand}
-              className="absolute top-2 right-2 p-1 px-2 text-xs bg-gray-700 hover:bg-gray-600 rounded text-gray-300 transition-colors duration-200"
-            >
-              Copy
-            </button>
           </div>
         )}
       </StepCard>
-      
-      {currentStep === 3 && (
-        <button
-          onClick={() => {/* Add continue logic */}}
-          className="w-full mt-4 py-3 bg-gray-800 text-white rounded-md 
-            hover:bg-white hover:text-black 
-            active:bg-gray-200 
-            transition-colors duration-300 
-            focus:outline-none focus:ring-2 focus:ring-gray-600"
-        >
-          Continue
-        </button>
+
+      {currentStep === 3 && customDomain && (
+        <div className="w-full mt-4">
+          <button
+            onClick={() => {
+              // Add any final continue logic here
+              alert('Continuing to next step...');
+            }}
+            className="w-full py-3 bg-gray-800 text-white rounded-md 
+              hover:bg-white hover:text-black 
+              active:bg-gray-200 
+              transition-colors duration-300 
+              focus:outline-none focus:ring-2 focus:ring-gray-600"
+          >
+            Continue
+          </button>
+        </div>
       )}
 
       <div className="w-full text-center mt-8">
