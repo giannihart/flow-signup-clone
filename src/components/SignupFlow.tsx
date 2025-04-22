@@ -10,8 +10,8 @@ interface SignupFlowProps {
 
 const SignupFlow: React.FC<SignupFlowProps> = ({ initialUserName = "TEAM" }) => {
   const [userName, setUserName] = useState(initialUserName);
-  const [currentStep, setCurrentStep] = useState(1);
-  const [isGithubAuthorized, setIsGithubAuthorized] = useState(false);
+  const [currentStep, setCurrentStep] = useState(2);
+  const [isGithubAuthorized, setIsGithubAuthorized] = useState(true);
   const [repoName, setRepoName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -126,20 +126,26 @@ const SignupFlow: React.FC<SignupFlowProps> = ({ initialUserName = "TEAM" }) => 
       return;
     }
     
-    // Check for duplicate repositories
-    if (repositories.includes(cleanedRepoUrl)) {
-      setErrorMessage("This repository is already added");
+    // Check if a repository is already added
+    if (repositories.length > 0) {
+      setErrorMessage("Only one repository can be added at this time");
       return;
     }
     
     // Add repository
-    setRepositories([...repositories, cleanedRepoUrl]);
+    setRepositories([cleanedRepoUrl]);
     setNewRepoUrl("");
     setErrorMessage("");
+    setIsRepoConnected(true);
+    setCurrentStep(3); // Automatically advance to the next step
   };
 
-  const removeRepository = (repoToRemove: string) => {
-    setRepositories(repositories.filter(repo => repo !== repoToRemove));
+  const resetRepositoryState = () => {
+    setRepositories([]);
+    setNewRepoUrl("");
+    setErrorMessage("");
+    setIsRepoConnected(false);
+    setCurrentStep(2);
   };
 
   // Function to copy git command to clipboard
@@ -237,74 +243,77 @@ const SignupFlow: React.FC<SignupFlowProps> = ({ initialUserName = "TEAM" }) => 
       <h1 className="text-2xl font-bold mb-1">Hello, {userName}</h1>
       <p className="text-gray-400 mb-2">Let's set up your first documentation deployment</p>
       
-      <StepCard 
-        stepNumber={1} 
-        title="Sign in with GitHub" 
-        active={currentStep === 1}
-        completed={currentStep > 1}
-      >
-        <p className="mb-4">To get started, log in with your GitHub account</p>
-        
-        {!isGithubAuthorized ? (
-          <>
-            <GitHubButton 
-              onClick={handleGitHubLogin}
-              disabled={isLoading}
-            >
-              {isLoading && currentStep === 1 ? "Connecting..." : "Login with GitHub"}
-            </GitHubButton>
-            
-            <div className="mt-4 w-full">
-              <Accordion title="Don't want to authorize GitHub OAuth?">
-                <div className="flex flex-col space-y-3 animate-slide-up opacity-0">
-                  <input
-                    type="email"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    placeholder="Email address"
-                    className="w-full px-3 py-2 bg-gray-800 border border-gray-700 rounded-md focus:outline-none focus:ring-1 focus:ring-gray-600"
-                  />
-                  <input
-                    type="password"
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    placeholder="Password"
-                    className="w-full px-3 py-2 bg-gray-800 border border-gray-700 rounded-md focus:outline-none focus:ring-1 focus:ring-gray-600"
-                  />
-                  <button 
-                    onClick={handleEmailLogin}
-                    disabled={isLoading}
-                    className="w-full py-2 bg-gray-800 border border-gray-700 rounded-md hover:bg-gray-700 transition-colors disabled:opacity-50"
-                  >
-                    {isLoading && currentStep === 1 ? "Connecting..." : "Continue with Email"}
-                  </button>
-                  
-                  {errorMessage && (
-                    <p className="text-red-500 text-xs mt-1">{errorMessage}</p>
-                  )}
-                </div>
-              </Accordion>
+      {/* Hide sign-in section */}
+      {false && (
+        <StepCard 
+          stepNumber={1} 
+          title="Sign in with GitHub" 
+          active={currentStep === 1}
+          completed={currentStep > 1}
+        >
+          <p className="mb-4">To get started, log in with your GitHub account</p>
+          
+          {!isGithubAuthorized ? (
+            <>
+              <GitHubButton 
+                onClick={handleGitHubLogin}
+                disabled={isLoading}
+              >
+                {isLoading && currentStep === 1 ? "Connecting..." : "Login with GitHub"}
+              </GitHubButton>
+              
+              <div className="mt-4 w-full">
+                <Accordion title="Don't want to authorize GitHub OAuth?">
+                  <div className="flex flex-col space-y-3 animate-slide-up opacity-0">
+                    <input
+                      type="email"
+                      value={email}
+                      onChange={(e) => setEmail(e.target.value)}
+                      placeholder="Email address"
+                      className="w-full px-3 py-2 bg-gray-800 border border-gray-700 rounded-md focus:outline-none focus:ring-1 focus:ring-gray-600"
+                    />
+                    <input
+                      type="password"
+                      value={password}
+                      onChange={(e) => setPassword(e.target.value)}
+                      placeholder="Password"
+                      className="w-full px-3 py-2 bg-gray-800 border border-gray-700 rounded-md focus:outline-none focus:ring-1 focus:ring-gray-600"
+                    />
+                    <button 
+                      onClick={handleEmailLogin}
+                      disabled={isLoading}
+                      className="w-full py-2 bg-gray-800 border border-gray-700 rounded-md hover:bg-gray-700 transition-colors disabled:opacity-50"
+                    >
+                      {isLoading && currentStep === 1 ? "Connecting..." : "Continue with Email"}
+                    </button>
+                    
+                    {errorMessage && (
+                      <p className="text-red-500 text-xs mt-1">{errorMessage}</p>
+                    )}
+                  </div>
+                </Accordion>
+              </div>
+            </>
+          ) : (
+            <div className="text-white flex items-center animate-slide-up">
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2" viewBox="0 0 20 20" fill="currentColor">
+                <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+              </svg>
+              GitHub account connected successfully
             </div>
-          </>
-        ) : (
-          <div className="text-white flex items-center animate-slide-up">
-            <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2" viewBox="0 0 20 20" fill="currentColor">
-              <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
-            </svg>
-            GitHub account connected successfully
-          </div>
-        )}
-        
-        {currentStep > 1 && (
-          <div className="text-xs text-white hover:underline mt-2 cursor-pointer" 
-               onClick={() => resetStep(1)}>
-            Edit Sign In
-          </div>
-        )}
-      </StepCard>
+          )}
+          
+          {currentStep > 1 && (
+            <div className="text-xs text-white hover:underline mt-2 cursor-pointer" 
+                 onClick={() => resetStep(1)}>
+              Edit Sign In
+            </div>
+          )}
+        </StepCard>
+      )}
       
       <StepCard 
-        stepNumber={2} 
+        stepNumber={1} 
         title="Connect documentation repos"
         active={currentStep === 2}
         completed={currentStep > 2}
@@ -313,75 +322,75 @@ const SignupFlow: React.FC<SignupFlowProps> = ({ initialUserName = "TEAM" }) => 
         
         {currentStep === 2 && (
           <div className={`flex flex-col space-y-3 animate-slide-up animate-delay-100`}>
-            <div className="flex flex-col sm:flex-row sm:items-center gap-2">
-              <input
-                type="text"
-                value={newRepoUrl}
-                onChange={(e) => {
-                  setNewRepoUrl(e.target.value);
-                  setErrorMessage("");
-                }}
-                placeholder="https://github.com/username/repo"
-                className="w-full px-3 py-2 bg-gray-800 border border-gray-700 rounded-md focus:outline-none focus:ring-1 focus:ring-gray-600"
-                disabled={currentStep > 2}
-              />
-              <button
-                onClick={handleAddRepository}
-                disabled={!newRepoUrl.trim() || currentStep > 2}
-                className={`px-4 py-2 rounded-md whitespace-nowrap ${
-                  newRepoUrl.trim() ? "bg-white hover:bg-gray-100" : "bg-gray-700 cursor-not-allowed"
-                } transition-colors`}
-              >
-                Add Repository
-              </button>
-            </div>
+            {!isRepoConnected && (
+              <div className="flex flex-col sm:flex-row sm:items-center gap-2">
+                <input
+                  type="text"
+                  value={newRepoUrl}
+                  onChange={(e) => {
+                    setNewRepoUrl(e.target.value);
+                    setErrorMessage("");
+                  }}
+                  placeholder="https://github.com/username/repo"
+                  className="w-full px-3 py-2 bg-gray-800 border border-gray-700 rounded-md focus:outline-none focus:ring-1 focus:ring-gray-600"
+                />
+                <button
+                  onClick={handleAddRepository}
+                  disabled={!newRepoUrl.trim()}
+                  className={`px-4 py-2 rounded-md whitespace-nowrap ${
+                    newRepoUrl.trim() ? "bg-white hover:bg-gray-100" : "bg-gray-700 cursor-not-allowed"
+                  } transition-colors`}
+                >
+                  Add Repository
+                </button>
+              </div>
+            )}
             
             {errorMessage && (
               <p className="text-red-500 text-xs mt-1">{errorMessage}</p>
             )}
             
-            {repositories.length > 0 && (
-              <div className="mt-4">
-                <h4 className="text-sm font-medium mb-2">Connected Repositories:</h4>
-                <ul className="space-y-2">
-                  {repositories.map((repo, index) => (
-                    <li 
-                      key={repo} 
-                      className="flex justify-between items-center bg-gray-800 px-3 py-2 rounded-md"
-                    >
-                      <span className="text-xs truncate">{repo}</span>
-                      <button
-                        onClick={() => removeRepository(repo)}
-                        className="text-xs text-red-500 hover:text-red-400 ml-2"
-                      >
-                        Remove
-                      </button>
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            )}
-            
-            {repositories.length > 0 && (
-              <button
-                onClick={() => {
-                  setIsRepoConnected(true);
-                  setCurrentStep(3);
-                }}
-                className="w-full py-2 mt-4 bg-white text-black rounded-md hover:bg-gray-100 transition-colors"
-              >
-                Continue
-              </button>
-            )}
-          </div>
-        )}
+            {isRepoConnected && (
+              <>
+                <div className="text-white flex items-center animate-slide-up mt-4">
+                  <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2" viewBox="0 0 20 20" fill="currentColor">
+                    <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                  </svg>
+                  Repositories successfully connected
+                </div>
 
-        {currentStep > 2 && (
-          <div className="text-white flex items-center animate-slide-up">
-            <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2" viewBox="0 0 20 20" fill="currentColor">
-              <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
-            </svg>
-            Repositories successfully connected
+                <div className="mt-4">
+                  <h4 className="text-sm font-medium mb-2">Connected Repository:</h4>
+                  <ul className="space-y-2">
+                    {repositories.map((repo, index) => (
+                      <li 
+                        key={repo} 
+                        className="flex justify-between items-center bg-gray-800 px-3 py-2 rounded-md"
+                      >
+                        <span className="text-xs truncate">{repo}</span>
+                        <button
+                          onClick={resetRepositoryState}
+                          className="text-xs text-blue-400 hover:text-blue-300 ml-2"
+                        >
+                          Edit
+                        </button>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+
+                <button
+                  onClick={() => {
+                    // This is now redundant since we automatically advance to step 3
+                    // But kept for potential future use or consistency
+                    setCurrentStep(3);
+                  }}
+                  className="w-full py-2 mt-4 bg-white text-black rounded-md hover:bg-gray-100 transition-colors"
+                >
+                  Continue
+                </button>
+              </>
+            )}
           </div>
         )}
 
@@ -393,78 +402,99 @@ const SignupFlow: React.FC<SignupFlowProps> = ({ initialUserName = "TEAM" }) => 
         )}
       </StepCard>
       
-      <StepCard 
-        stepNumber={3} 
-        title="Customize Your Docs Domain"
-        active={currentStep === 3}
-        completed={false}
-      >
-        <p className="mb-4">Set up a custom documentation subdomain</p>
-        
-        {currentStep >= 3 && (
-          <div className="space-y-4 animate-slide-up animate-delay-200">
-            <div>
-              <h4 className="text-sm font-medium mb-2">Domain Customization</h4>
-              <div className="flex flex-col sm:flex-row sm:items-center gap-2">
-                <div className="flex w-full">
-                  <div className="bg-gray-700 px-3 py-2 flex items-center border border-r-0 border-gray-700 rounded-l-md">
-                    <span className="text-gray-400">https://</span>
+      {/* Hide customize domain section */}
+      {false && (
+        <StepCard 
+          stepNumber={3} 
+          title="Customize Your Docs Domain"
+          active={currentStep === 3}
+          completed={false}
+        >
+          <p className="mb-4">Set up a custom documentation subdomain</p>
+          
+          {currentStep >= 3 && (
+            <div className="space-y-4 animate-slide-up animate-delay-200">
+              <div>
+                <h4 className="text-sm font-medium mb-2">Domain Customization</h4>
+                <div className="flex flex-col sm:flex-row sm:items-center gap-2">
+                  <div className="flex w-full">
+                    <div className="bg-gray-700 px-3 py-2 flex items-center border border-r-0 border-gray-700 rounded-l-md">
+                      <span className="text-gray-400">https://</span>
+                    </div>
+                    <input
+                      type="text"
+                      value={domainName}
+                      onChange={(e) => {
+                        setDomainName(e.target.value);
+                        setErrorMessage("");
+                      }}
+                      placeholder="yourdomain"
+                      className="w-full px-3 py-2 bg-gray-800 border border-gray-700 focus:outline-none focus:ring-1 focus:ring-gray-600"
+                    />
+                    <div className="bg-gray-700 px-3 py-2 flex items-center border border-l-0 border-gray-700 rounded-r-md">
+                      <span className="text-gray-400">/docs</span>
+                    </div>
                   </div>
-                  <input
-                    type="text"
-                    value={domainName}
-                    onChange={(e) => {
-                      setDomainName(e.target.value);
-                      setErrorMessage("");
-                    }}
-                    placeholder="yourdomain"
-                    className="w-full px-3 py-2 bg-gray-800 border border-gray-700 focus:outline-none focus:ring-1 focus:ring-gray-600"
-                  />
-                  <div className="bg-gray-700 px-3 py-2 flex items-center border border-l-0 border-gray-700 rounded-r-md">
-                    <span className="text-gray-400">/docs</span>
-                  </div>
+                  <button
+                    onClick={handleDomainCustomization}
+                    disabled={!domainName.trim()}
+                    className={`px-4 py-2 rounded-md whitespace-nowrap ${
+                      domainName.trim() ? "bg-white hover:bg-gray-100" : "bg-gray-700 cursor-not-allowed"
+                    } transition-colors`}
+                  >
+                    Set Domain
+                  </button>
                 </div>
-                <button
-                  onClick={handleDomainCustomization}
-                  disabled={!domainName.trim()}
-                  className={`px-4 py-2 rounded-md whitespace-nowrap ${
-                    domainName.trim() ? "bg-white hover:bg-gray-100" : "bg-gray-700 cursor-not-allowed"
-                  } transition-colors`}
-                >
-                  Set Domain
-                </button>
+
+                {errorMessage && (
+                  <p className="text-red-500 text-xs mt-1">{errorMessage}</p>
+                )}
+
+                {customDomain && (
+                  <div className="mt-2 bg-gray-800 px-3 py-2 rounded-md">
+                    <p className="text-xs">
+                      Custom Docs Domain: <span className="font-medium">{customDomain}/docs</span>
+                    </p>
+                  </div>
+                )}
               </div>
-
-              {errorMessage && (
-                <p className="text-red-500 text-xs mt-1">{errorMessage}</p>
-              )}
-
-              {customDomain && (
-                <div className="mt-2 bg-gray-800 px-3 py-2 rounded-md">
-                  <p className="text-xs">
-                    Custom Docs Domain: <span className="font-medium">{customDomain}/docs</span>
-                  </p>
-                </div>
-              )}
             </div>
-          </div>
-        )}
-      </StepCard>
+          )}
+        </StepCard>
+      )}
 
-      {currentStep === 3 && customDomain && (
-        <div className="w-full mt-4">
+      {/* Continue button for the last page */}
+      {currentStep === 3 && (
+        <div className="w-full mt-8">
           <button
             onClick={() => {
-              // Add any final continue logic here
-              alert('Continuing to next step...');
+              // Add final step logic here
+              alert('Completing signup flow...');
             }}
-            className="w-full py-3 bg-gray-800 text-white rounded-md 
-              hover:bg-white hover:text-black 
+            className="w-full py-3 bg-white text-black rounded-md 
+              flex items-center justify-center
+              font-semibold text-base
+              hover:bg-gray-100 
               active:bg-gray-200 
-              transition-colors duration-300 
-              focus:outline-none focus:ring-2 focus:ring-gray-600"
+              transition-all duration-300 
+              transform hover:scale-[1.01]
+              focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-opacity-50
+              shadow-md hover:shadow-lg
+              group"
           >
-            Continue
+            <span>Complete Setup</span>
+            <svg 
+              xmlns="http://www.w3.org/2000/svg" 
+              className="h-5 w-5 ml-2 transition-transform group-hover:translate-x-1" 
+              viewBox="0 0 20 20" 
+              fill="currentColor"
+            >
+              <path 
+                fillRule="evenodd" 
+                d="M10.293 5.293a1 1 0 011.414 0l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414-1.414L12.586 11H5a1 1 0 110-2h7.586l-2.293-2.293a1 1 0 010-1.414z" 
+                clipRule="evenodd" 
+              />
+            </svg>
           </button>
         </div>
       )}
