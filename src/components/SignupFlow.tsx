@@ -6,9 +6,10 @@ import Accordion from "@/components/Accordion";
 
 interface SignupFlowProps {
   initialUserName?: string;
+  initialFramework?: 'DRF' | 'Express' | 'FastAPI' | 'Flask';
 }
 
-const SignupFlow: React.FC<SignupFlowProps> = ({ initialUserName = "TEAM" }) => {
+const SignupFlow: React.FC<SignupFlowProps> = ({ initialUserName = "TEAM", initialFramework }) => {
   const [userName, setUserName] = useState(initialUserName);
   const [currentStep, setCurrentStep] = useState(2);
   const [isGithubAuthorized, setIsGithubAuthorized] = useState(true);
@@ -23,6 +24,7 @@ const SignupFlow: React.FC<SignupFlowProps> = ({ initialUserName = "TEAM" }) => 
   const [newRepoUrl, setNewRepoUrl] = useState("");
   const [domainName, setDomainName] = useState("");
   const [customDomain, setCustomDomain] = useState("");
+  const [selectedFramework, setSelectedFramework] = useState<string | null>(initialFramework || null);
 
   const handleGitHubLogin = () => {
     setIsLoading(true);
@@ -137,7 +139,7 @@ const SignupFlow: React.FC<SignupFlowProps> = ({ initialUserName = "TEAM" }) => 
     setNewRepoUrl("");
     setErrorMessage("");
     setIsRepoConnected(true);
-    setCurrentStep(3); // Automatically advance to the next step
+    setCurrentStep(3); // Advance to framework selection step
   };
 
   const resetRepositoryState = () => {
@@ -234,6 +236,11 @@ const SignupFlow: React.FC<SignupFlowProps> = ({ initialUserName = "TEAM" }) => 
     // Set custom domain
     setCustomDomain(formattedDomain);
     setErrorMessage("");
+  };
+
+  const handleFrameworkSelection = (framework: string) => {
+    setSelectedFramework(framework);
+    setCurrentStep(4); // Move to the next step
   };
 
   return (
@@ -356,7 +363,7 @@ const SignupFlow: React.FC<SignupFlowProps> = ({ initialUserName = "TEAM" }) => 
                   <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2" viewBox="0 0 20 20" fill="currentColor">
                     <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
                   </svg>
-                  Repositories successfully connected
+                  Repository successfully connected
                 </div>
 
                 <div className="mt-4">
@@ -369,7 +376,10 @@ const SignupFlow: React.FC<SignupFlowProps> = ({ initialUserName = "TEAM" }) => 
                       >
                         <span className="text-xs truncate">{repo}</span>
                         <button
-                          onClick={resetRepositoryState}
+                          onClick={() => {
+                            setNewRepoUrl(repo);
+                            resetRepositoryState();
+                          }}
                           className="text-xs text-blue-400 hover:text-blue-300 ml-2"
                         >
                           Edit
@@ -380,11 +390,7 @@ const SignupFlow: React.FC<SignupFlowProps> = ({ initialUserName = "TEAM" }) => 
                 </div>
 
                 <button
-                  onClick={() => {
-                    // This is now redundant since we automatically advance to step 3
-                    // But kept for potential future use or consistency
-                    setCurrentStep(3);
-                  }}
+                  onClick={() => setCurrentStep(3)}
                   className="w-full py-2 mt-4 bg-white text-black rounded-md hover:bg-gray-100 transition-colors"
                 >
                   Continue
@@ -397,22 +403,83 @@ const SignupFlow: React.FC<SignupFlowProps> = ({ initialUserName = "TEAM" }) => 
         {currentStep > 2 && (
           <div className="text-xs text-white hover:underline mt-2 cursor-pointer" 
                onClick={() => setCurrentStep(2)}>
-            Edit Repositories
+            Edit Repository
           </div>
         )}
       </StepCard>
       
-      {/* Hide customize domain section */}
+      {/* Framework Selection Step */}
+      <StepCard 
+        stepNumber={2} 
+        title="Select Your Backend Framework"
+        active={currentStep === 3}
+        completed={currentStep > 3}
+      >
+        <p className="mb-4">Choose the backend framework for your project</p>
+        
+        {currentStep === 3 && (
+          <div className="space-y-4">
+            <div className="grid grid-cols-2 gap-4">
+              {['DRF', 'Express', 'FastAPI', 'Flask'].map((framework) => (
+                <button
+                  key={framework}
+                  onClick={() => {
+                    setSelectedFramework(framework);
+                    setCurrentStep(4);
+                  }}
+                  className="w-full py-3 bg-gray-800 text-white rounded-md 
+                    hover:bg-white hover:text-black 
+                    transition-colors duration-300 
+                    flex items-center justify-center
+                    font-medium
+                    border border-gray-700 hover:border-white
+                    group"
+                >
+                  <span className="transition-transform group-hover:scale-105">
+                    {framework}
+                  </span>
+                </button>
+              ))}
+            </div>
+
+            {currentStep > 3 && (
+              <div className="mt-4 bg-gray-800 px-3 py-2 rounded-md">
+                <p className="text-xs">
+                  Selected Framework: <span className="font-medium">{selectedFramework}</span>
+                </p>
+                <button
+                  onClick={() => {
+                    setSelectedFramework(null);
+                    setCurrentStep(3);
+                  }}
+                  className="text-xs text-blue-400 hover:text-blue-300 mt-2"
+                >
+                  Change Framework
+                </button>
+              </div>
+            )}
+          </div>
+        )}
+
+        {currentStep > 3 && (
+          <div className="text-xs text-white hover:underline mt-2 cursor-pointer" 
+               onClick={() => setCurrentStep(3)}>
+            Edit Framework
+          </div>
+        )}
+      </StepCard>
+
+      {/* Customize Domain Section (hidden) */}
       {false && (
         <StepCard 
-          stepNumber={3} 
+          stepNumber={4} 
           title="Customize Your Docs Domain"
-          active={currentStep === 3}
+          active={currentStep === 4}
           completed={false}
         >
           <p className="mb-4">Set up a custom documentation subdomain</p>
           
-          {currentStep >= 3 && (
+          {currentStep >= 4 && (
             <div className="space-y-4 animate-slide-up animate-delay-200">
               <div>
                 <h4 className="text-sm font-medium mb-2">Domain Customization</h4>
@@ -464,7 +531,7 @@ const SignupFlow: React.FC<SignupFlowProps> = ({ initialUserName = "TEAM" }) => 
       )}
 
       {/* Continue button for the last page */}
-      {currentStep === 3 && (
+      {currentStep === 4 && (
         <div className="w-full mt-8">
           <button
             onClick={() => {
